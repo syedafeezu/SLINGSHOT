@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="RetailVibe — your AI-powered in-store shopping assistant. Describe what you want to make or buy and get an instant, aisle-mapped checklist.">
     <title>RetailVibe - Smart In-Store Assistant</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -57,6 +58,7 @@
             font-weight: 700;
             background: linear-gradient(135deg, var(--primary), var(--secondary));
             -webkit-background-clip: text;
+            background-clip: text;
             -webkit-text-fill-color: transparent;
             margin-bottom: 0.5rem;
         }
@@ -283,6 +285,49 @@
             margin-top: 1rem;
             text-align: center;
         }
+
+        /* Suggestions */
+        .suggestions-container {
+            margin-top: 2rem;
+            text-align: center;
+            animation: fadeIn 0.8s ease;
+        }
+
+        .suggestions-title {
+            font-size: 1rem;
+            color: var(--text-muted);
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            font-weight: 500;
+        }
+
+        .suggestion-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.8rem;
+            justify-content: center;
+        }
+
+        .suggestion-chip {
+            background: rgba(30, 41, 59, 0.5);
+            border: 1px solid var(--glass-border);
+            color: var(--text-main);
+            padding: 0.6rem 1.2rem;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.95rem;
+            transition: all 0.2s ease;
+            backdrop-filter: blur(8px);
+        }
+
+        .suggestion-chip:hover {
+            background: rgba(139, 92, 246, 0.2);
+            border-color: rgba(139, 92, 246, 0.5);
+            transform: translateY(-2px);
+        }
     </style>
 </head>
 <body>
@@ -300,6 +345,19 @@
             </button>
         </form>
         
+        <div id="suggestions" class="suggestions-container">
+            <h3 class="suggestions-title"><i class="ph ph-clock-counter-clockwise"></i> Recently Bought & Suggestions</h3>
+            <div class="suggestion-chips">
+                <button type="button" class="suggestion-chip">🥛 Oat Milk</button>
+                <button type="button" class="suggestion-chip">🥑 Avocado</button>
+                <button type="button" class="suggestion-chip">🍞 Sourdough Bread</button>
+                <button type="button" class="suggestion-chip">🥚 Organic Eggs</button>
+                <button type="button" class="suggestion-chip">🍝 Pasta Ingredients</button>
+                <button type="button" class="suggestion-chip">🍕 Pizza Night</button>
+                <button type="button" class="suggestion-chip">🥗 Salad Bowl</button>
+            </div>
+        </div>
+
         <div id="error-box" class="error-message"></div>
 
         <div id="loading" class="loading">
@@ -328,6 +386,15 @@
         const checklist = document.getElementById('checklist');
         const crossSellContainer = document.getElementById('cross-sell');
         const errorBox = document.getElementById('error-box');
+        const suggestionsContainer = document.getElementById('suggestions');
+        const suggestionChips = document.querySelectorAll('.suggestion-chip');
+
+        suggestionChips.forEach(chip => {
+            chip.addEventListener('click', () => {
+                input.value = chip.textContent;
+                form.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+            });
+        });
 
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -337,6 +404,7 @@
 
             // Reset UI
             resultsContainer.style.display = 'none';
+            suggestionsContainer.style.display = 'none';
             errorBox.style.display = 'none';
             loadingIndicator.style.display = 'block';
 
@@ -360,6 +428,8 @@
                 console.error('Error:', error);
                 errorBox.textContent = error.message;
                 errorBox.style.display = 'block';
+                // Restore suggestions on error so user can try a different query
+                suggestionsContainer.style.display = 'block';
             } finally {
                 loadingIndicator.style.display = 'none';
             }
@@ -407,6 +477,8 @@
 
             // Show results
             resultsContainer.style.display = 'block';
+            // Restore suggestion chips below results for continued browsing
+            suggestionsContainer.style.display = 'block';
         }
     </script>
 </body>
