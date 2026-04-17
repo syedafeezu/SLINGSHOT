@@ -28,4 +28,4 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
 #   --threads 8   : handle concurrent requests within one worker
 #   --timeout 120 : generous timeout for Gemini API calls
 #   --preload     : load app before forking → faster cold starts
-CMD ["gunicorn", "--bind", "0.0.0.0:8080", "--workers", "1", "--threads", "8", "--timeout", "120", "--preload", "app:app"]
+CMD exec gunicorn --bind 0.0.0.0:${PORT:-8080} --workers 1 --threads 8 --timeout 120 --preload app:app

@@ -51,11 +51,10 @@ def set_security_headers(response):
 
 GEMINI_API_KEY = get_gemini_api_key()
 if not GEMINI_API_KEY:
-    raise RuntimeError(
-        "GEMINI_API_KEY is not set. Provide it via Secret Manager or a .env file."
-    )
+    logger.warning("GEMINI_API_KEY is not set. The API will fail until it is provided.")
+else:
+    genai.configure(api_key=GEMINI_API_KEY)
 
-genai.configure(api_key=GEMINI_API_KEY)
 model = genai.GenerativeModel("gemini-2.5-flash")
 
 # ---------------------------------------------------------------------------
