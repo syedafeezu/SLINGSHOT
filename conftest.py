@@ -1,67 +1,70 @@
 """
 conftest.py — Shared pytest fixtures for RetailVibe test suite.
-Gemini and Google Cloud services are mocked so tests run fully offline.
+All Google Cloud and Gemini calls are mocked — tests run fully offline.
 """
 
 import json
+import sys
+import os
+import unittest.mock as mock
 import pytest
 
 
 # ---------------------------------------------------------------------------
-# Patch heavy Google services BEFORE the app module is imported
+# Pre-patch environment before any app imports
 # ---------------------------------------------------------------------------
-
-@pytest.fixture(autouse=True, scope="session")
-def mock_google_services(session_mocker=None):
-    """
-    Ensure tests never hit real Google Cloud APIs.
-    We patch at the module level so the app initialises cleanly.
-    """
-    import unittest.mock as mock
-
-    # ---- Patch Secret Manager so get_gemini_api_key() returns a fake key --
-    with mock.patch(
-        "google_services.get_secret", return_value=None
-    ):
-        # ---- Provide a dummy key via env so the RuntimeError isn't raised --
-        with mock.patch.dict("os.environ", {"GEMINI_API_KEY": "test-fake-key-12345"}):
-            yield
+os.environ.setdefault("GEMINI_API_KEY", "test-fake-key-12345")
 
 
 @pytest.fixture(scope="session")
-def app(mock_google_services):
-    """Create the Flask application configured for testing."""
-    import unittest.mock as mock
+def app():
+    """
+    Create the Flask app for testing.
+    Patches Gemini and Google Cloud at the google_services module level
+    so no real HTTP calls are made.
+    """
+    fake_response_json = json.dumps({
+        "items": [
+            {"name": "Spaghetti",     "aisle": "Aisle 3"},
+            {"name": "Tomato Sauce",  "aisle": "Aisle 5"},
+            {"name": "Ground Beef",   "aisle": "Meat"},
+        ],
+        "cross_sell": {
+            "name": "Parmesan Cheese",
+            "aisle": "Dairy",
+            "reason": "Perfect topping for pasta dishes.",
+        },
+    })
 
-    # Patch Gemini *before* importing app so genai.configure() uses the fake key
-    with mock.patch("google.generativeai.configure"):
-        with mock.patch("google.generativeai.GenerativeModel") as MockModel:
-            # Default mock response: valid JSON shopping list
-            mock_instance = MockModel.return_value
-            mock_instance.generate_content.return_value = mock.Mock(
-                text=json.dumps({
-                    "items": [
-                        {"name": "Spaghetti", "aisle": "Aisle 3"},
-                        {"name": "Tomato Sauce", "aisle": "Aisle 5"},
-                        {"name": "Ground Beef", "aisle": "Meat"},
-                    ],
-                    "cross_sell": {
-                        "name": "Parmesan Cheese",
-                        "aisle": "Dairy",
-                        "reason": "Perfect topping for pasta dishes.",
-                    },
-                })
-            )
+    mock_response = mock.Mock()
+    mock_response.text = fake_response_json
 
-            import app as flask_app
-            flask_app.app.config["TESTING"] = True
-            flask_app.app.config["WTF_CSRF_ENABLED"] = False
-            # Disable rate limiting in tests
-            flask_app.limiter.enabled = False
-            yield flask_app.app
+    mock_model = mock.Mock()
+    mock_model.generate_content.return_value = mock_response
+
+    # Patch google_services helpers so Secret Manager / Firestore never hit
+    with mock.patch("google_services.get_secret", return_value=None), \
+         mock.patch("google_services._get_firestore_client", return_value=None), \
+         mock.patch("google_services.save_query", return_value=None), \
+         mock.patch("google_services.get_history", return_value=[]):
+
+        # Patch genai at the module attribute level — avoids importing the
+        # full google.generativeai package inside mock.patch()
+        import google_services  # noqa: ensure module is loaded first
+
+        import importlib
+        import app as flask_app_module
+
+        # Replace the model object the app already constructed
+        flask_app_module.model = mock_model
+
+        flask_app_module.app.config["TESTING"] = True
+        flask_app_module.limiter.enabled = False
+
+        yield flask_app_module.app
 
 
 @pytest.fixture()
 def client(app):
-    """A test client for the Flask app."""
+    """Flask test client."""
     return app.test_client()
