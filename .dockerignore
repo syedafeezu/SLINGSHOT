@@ -1,0 +1,29 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+.env
+.env.*
+
+# Editor directories
+.idea/
+.vscode/
+.git/
+.gitignore
+README.md
+
+# Media
+*.jpg
+*.jpeg
+*.png
+*.gif
+*.webp
+*.mp4
+*.webm
+*.mov
+*.svg
+*.ico

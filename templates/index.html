@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RetailVibe - Smart In-Store Assistant</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --primary: #8b5cf6;
+            --primary-hover: #7c3aed;
+            --secondary: #ec4899;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --glass-bg: rgba(30, 41, 59, 0.7);
+            --glass-border: rgba(255, 255, 255, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-image: 
+                radial-gradient(circle at 15% 50%, rgba(139, 92, 246, 0.15), transparent 25%),
+                radial-gradient(circle at 85% 30%, rgba(236, 72, 153, 0.15), transparent 25%);
+            background-attachment: fixed;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 800px;
+            padding: 2rem;
+            margin-top: 4rem;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        h1 {
+            font-size: 3rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+        }
+
+        p.subtitle {
+            color: var(--text-muted);
+            font-size: 1.1rem;
+        }
+
+        .search-box {
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            padding: 0.5rem;
+            display: flex;
+            align-items: center;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .search-box:focus-within {
+            border-color: rgba(139, 92, 246, 0.5);
+            box-shadow: 0 8px 32px rgba(139, 92, 246, 0.2);
+        }
+
+        .search-input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: var(--text-main);
+            font-size: 1.1rem;
+            padding: 1rem 1.5rem;
+            outline: none;
+        }
+
+        .search-input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .search-btn {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border: none;
+            border-radius: 20px;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: white;
+            font-size: 1.5rem;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .search-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 15px rgba(236, 72, 153, 0.4);
+        }
+
+        .results-container {
+            margin-top: 3rem;
+            display: none;
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .checklist {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            margin-bottom: 3rem;
+        }
+
+        .checklist-item {
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 1.2rem 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+
+        .checklist-item:hover {
+            background: rgba(40, 53, 76, 0.8);
+            transform: translateX(5px);
+        }
+
+        .item-left {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .checkbox {
+            width: 24px;
+            height: 24px;
+            border: 2px solid var(--primary);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+
+        .checklist-item.checked .checkbox {
+            background: var(--primary);
+        }
+
+        .checklist-item.checked .checkbox::after {
+            content: '✓';
+            color: white;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .checklist-item.checked .item-name {
+            text-decoration: line-through;
+            color: var(--text-muted);
+        }
+
+        .item-name {
+            font-size: 1.1rem;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+
+        .item-aisle {
+            background: rgba(139, 92, 246, 0.2);
+            color: #d8b4fe;
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .cross-sell-card {
+            background: linear-gradient(135deg, rgba(236, 72, 153, 0.1), rgba(139, 92, 246, 0.1));
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(236, 72, 153, 0.3);
+            border-radius: 20px;
+            padding: 2rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .cross-sell-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: linear-gradient(to bottom, var(--secondary), var(--primary));
+        }
+
+        .cross-sell-header {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            color: var(--secondary);
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+
+        .cross-sell-name {
+            font-size: 1.4rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .cross-sell-reason {
+            color: var(--text-muted);
+            line-height: 1.5;
+            margin-bottom: 1rem;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            margin-top: 3rem;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(255,255,255,0.1);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Error state */
+        .error-message {
+            display: none;
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: #fca5a5;
+            padding: 1rem;
+            border-radius: 12px;
+            margin-top: 1rem;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <header>
+            <h1>RetailVibe</h1>
+            <p class="subtitle">Your AI-Powered In-Store Shopping Assistant</p>
+        </header>
+
+        <form id="search-form" class="search-box">
+            <input type="text" id="query-input" class="search-input" placeholder="e.g. Ingredients for a gluten-free lasagna and a wine..." autocomplete="off" required>
+            <button type="submit" class="search-btn">
+                <i class="ph ph-sparkle"></i>
+            </button>
+        </form>
+        
+        <div id="error-box" class="error-message"></div>
+
+        <div id="loading" class="loading">
+            <div class="spinner"></div>
+            <p>Curating your perfect shopping list...</p>
+        </div>
+
+        <div id="results" class="results-container">
+            <h2 class="section-title"><i class="ph ph-shopping-cart"></i> Your Shopping List</h2>
+            <ul id="checklist" class="checklist">
+                <!-- Items will be injected here -->
+            </ul>
+
+            <h2 class="section-title"><i class="ph ph-star"></i> Perfect Pairing</h2>
+            <div class="cross-sell-card" id="cross-sell">
+                <!-- Cross-sell will be injected here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const form = document.getElementById('search-form');
+        const input = document.getElementById('query-input');
+        const resultsContainer = document.getElementById('results');
+        const loadingIndicator = document.getElementById('loading');
+        const checklist = document.getElementById('checklist');
+        const crossSellContainer = document.getElementById('cross-sell');
+        const errorBox = document.getElementById('error-box');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const query = input.value.trim();
+            if (!query) return;
+
+            // Reset UI
+            resultsContainer.style.display = 'none';
+            errorBox.style.display = 'none';
+            loadingIndicator.style.display = 'block';
+
+            try {
+                const response = await fetch('/api/shopping-list', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ query })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to generate shopping list');
+                }
+
+                renderResults(data);
+            } catch (error) {
+                console.error('Error:', error);
+                errorBox.textContent = error.message;
+                errorBox.style.display = 'block';
+            } finally {
+                loadingIndicator.style.display = 'none';
+            }
+        });
+
+        function renderResults(data) {
+            // Render Checklist
+            checklist.innerHTML = '';
+            if (data.items && Array.isArray(data.items)) {
+                data.items.forEach((item, index) => {
+                    const li = document.createElement('li');
+                    li.className = 'checklist-item';
+                    li.innerHTML = `
+                        <div class="item-left">
+                            <div class="checkbox"></div>
+                            <span class="item-name">${item.name || 'Unknown Item'}</span>
+                        </div>
+                        <span class="item-aisle"><i class="ph ph-map-pin"></i> ${item.aisle || 'Unknown Aisle'}</span>
+                    `;
+                    
+                    // Toggle checked state
+                    li.addEventListener('click', () => {
+                        li.classList.toggle('checked');
+                    });
+                    
+                    checklist.appendChild(li);
+                });
+            } else {
+                checklist.innerHTML = '<li class="checklist-item">No items found.</li>';
+            }
+
+            // Render Cross-Sell
+            if (data.cross_sell) {
+                crossSellContainer.innerHTML = `
+                    <div class="cross-sell-header">
+                        <i class="ph-fill ph-lightbulb"></i> Recommended Addition
+                    </div>
+                    <div class="cross-sell-name">${data.cross_sell.name || ''}</div>
+                    <div class="cross-sell-reason">${data.cross_sell.reason || ''}</div>
+                    <div class="item-aisle" style="display: inline-block; margin-top: 0.5rem;"><i class="ph ph-map-pin"></i> ${data.cross_sell.aisle || ''}</div>
+                `;
+            } else {
+                crossSellContainer.innerHTML = '<div>No cross-sell recommendation available.</div>';
+            }
+
+            // Show results
+            resultsContainer.style.display = 'block';
+        }
+    </script>
+</body>
+</html>
