@@ -19,6 +19,7 @@
             --text-muted: #94a3b8;
             --glass-bg: rgba(30, 41, 59, 0.7);
             --glass-border: rgba(255, 255, 255, 0.1);
+            --focus-ring: 0 0 0 3px rgba(139, 92, 246, 0.6);
         }
 
         * {
@@ -26,6 +27,31 @@
             padding: 0;
             box-sizing: border-box;
             font-family: 'Outfit', sans-serif;
+        }
+
+        /* Visible focus rings for keyboard navigation */
+        :focus-visible {
+            outline: none;
+            box-shadow: var(--focus-ring);
+            border-radius: 8px;
+        }
+
+        /* Skip-to-content link for screen readers */
+        .skip-link {
+            position: absolute;
+            top: -100%;
+            left: 1rem;
+            background: var(--primary);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 0 0 8px 8px;
+            font-weight: 600;
+            z-index: 1000;
+            text-decoration: none;
+            transition: top 0.2s;
+        }
+        .skip-link:focus {
+            top: 0;
         }
 
         body {
@@ -66,6 +92,19 @@
         p.subtitle {
             color: var(--text-muted);
             font-size: 1.1rem;
+        }
+
+        /* Visually hidden label for screen readers */
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
         }
 
         .search-box {
@@ -180,6 +219,7 @@
             align-items: center;
             justify-content: center;
             transition: all 0.2s ease;
+            flex-shrink: 0;
         }
 
         .checklist-item.checked .checkbox {
@@ -211,6 +251,7 @@
             border-radius: 20px;
             font-size: 0.85rem;
             font-weight: 600;
+            white-space: nowrap;
         }
 
         .cross-sell-card {
@@ -328,93 +369,223 @@
             border-color: rgba(139, 92, 246, 0.5);
             transform: translateY(-2px);
         }
+
+        /* History chip label pill */
+        .chip-history-badge {
+            font-size: 0.7rem;
+            background: rgba(139, 92, 246, 0.3);
+            color: #d8b4fe;
+            padding: 0.1rem 0.4rem;
+            border-radius: 8px;
+            margin-left: 0.3rem;
+            vertical-align: middle;
+        }
     </style>
 </head>
 <body>
 
-    <div class="container">
+    <!-- Skip navigation link for keyboard / screen-reader users -->
+    <a class="skip-link" href="#main-content">Skip to main content</a>
+
+    <div class="container" role="main" id="main-content">
         <header>
             <h1>RetailVibe</h1>
             <p class="subtitle">Your AI-Powered In-Store Shopping Assistant</p>
         </header>
 
-        <form id="search-form" class="search-box">
-            <input type="text" id="query-input" class="search-input" placeholder="e.g. Ingredients for a gluten-free lasagna and a wine..." autocomplete="off" required>
-            <button type="submit" class="search-btn">
-                <i class="ph ph-sparkle"></i>
-            </button>
-        </form>
-        
-        <div id="suggestions" class="suggestions-container">
-            <h3 class="suggestions-title"><i class="ph ph-clock-counter-clockwise"></i> Recently Bought & Suggestions</h3>
-            <div class="suggestion-chips">
-                <button type="button" class="suggestion-chip">🥛 Oat Milk</button>
-                <button type="button" class="suggestion-chip">🥑 Avocado</button>
-                <button type="button" class="suggestion-chip">🍞 Sourdough Bread</button>
-                <button type="button" class="suggestion-chip">🥚 Organic Eggs</button>
-                <button type="button" class="suggestion-chip">🍝 Pasta Ingredients</button>
-                <button type="button" class="suggestion-chip">🍕 Pizza Night</button>
-                <button type="button" class="suggestion-chip">🥗 Salad Bowl</button>
+        <!-- Search form with accessible label -->
+        <section aria-label="Shopping assistant search">
+            <label for="query-input" class="sr-only">What do you want to shop for or cook today?</label>
+            <form id="search-form" class="search-box" role="search" aria-label="Shopping query">
+                <input
+                    type="text"
+                    id="query-input"
+                    class="search-input"
+                    placeholder="e.g. Ingredients for a gluten-free lasagna and a wine..."
+                    autocomplete="off"
+                    aria-required="true"
+                    aria-label="Describe what you want to make or buy"
+                    required
+                >
+                <button
+                    type="submit"
+                    class="search-btn"
+                    id="search-btn"
+                    aria-label="Generate shopping list"
+                >
+                    <i class="ph ph-sparkle" aria-hidden="true"></i>
+                </button>
+            </form>
+        </section>
+
+        <!-- Recently Bought & Suggestions -->
+        <section id="suggestions" class="suggestions-container" aria-label="Recently bought and suggested items">
+            <h2 class="suggestions-title">
+                <i class="ph ph-clock-counter-clockwise" aria-hidden="true"></i>
+                Recently Bought &amp; Suggestions
+            </h2>
+            <div class="suggestion-chips" id="chips-container" role="list" aria-label="Quick search suggestions">
+                <!-- Populated by JS from /api/history + defaults -->
             </div>
-        </div>
+        </section>
 
-        <div id="error-box" class="error-message"></div>
+        <!-- Status / error feedback region (aria-live for screen readers) -->
+        <div
+            id="error-box"
+            class="error-message"
+            role="status"
+            aria-live="polite"
+            aria-atomic="true"
+        ></div>
 
-        <div id="loading" class="loading">
-            <div class="spinner"></div>
+        <!-- Loading indicator -->
+        <div id="loading" class="loading" aria-live="polite" aria-busy="false" aria-label="Loading shopping list">
+            <div class="spinner" aria-hidden="true"></div>
             <p>Curating your perfect shopping list...</p>
         </div>
 
-        <div id="results" class="results-container">
-            <h2 class="section-title"><i class="ph ph-shopping-cart"></i> Your Shopping List</h2>
-            <ul id="checklist" class="checklist">
-                <!-- Items will be injected here -->
+        <!-- Results (aria-live so screen readers announce new content) -->
+        <div
+            id="results"
+            class="results-container"
+            aria-live="polite"
+            aria-atomic="false"
+            aria-label="Shopping results"
+        >
+            <h2 class="section-title">
+                <i class="ph ph-shopping-cart" aria-hidden="true"></i>
+                Your Shopping List
+            </h2>
+            <ul id="checklist" class="checklist" aria-label="Shopping items checklist">
+                <!-- Items injected by JS -->
             </ul>
 
-            <h2 class="section-title"><i class="ph ph-star"></i> Perfect Pairing</h2>
-            <div class="cross-sell-card" id="cross-sell">
-                <!-- Cross-sell will be injected here -->
+            <h2 class="section-title">
+                <i class="ph ph-star" aria-hidden="true"></i>
+                Perfect Pairing
+            </h2>
+            <div
+                class="cross-sell-card"
+                id="cross-sell"
+                aria-label="Recommended complementary item"
+            >
+                <!-- Cross-sell injected by JS -->
             </div>
         </div>
     </div>
 
     <script>
-        const form = document.getElementById('search-form');
-        const input = document.getElementById('query-input');
-        const resultsContainer = document.getElementById('results');
-        const loadingIndicator = document.getElementById('loading');
-        const checklist = document.getElementById('checklist');
-        const crossSellContainer = document.getElementById('cross-sell');
-        const errorBox = document.getElementById('error-box');
-        const suggestionsContainer = document.getElementById('suggestions');
-        const suggestionChips = document.querySelectorAll('.suggestion-chip');
+        // ---------------------------------------------------------------------------
+        // Session ID — stable per browser tab for Firestore keying
+        // ---------------------------------------------------------------------------
+        const SESSION_ID = (() => {
+            let id = sessionStorage.getItem('rv_session');
+            if (!id) {
+                id = 'rv-' + Math.random().toString(36).slice(2, 10);
+                sessionStorage.setItem('rv_session', id);
+            }
+            return id;
+        })();
 
-        suggestionChips.forEach(chip => {
-            chip.addEventListener('click', () => {
-                input.value = chip.textContent;
+        // ---------------------------------------------------------------------------
+        // Default suggestion chips (shown before history loads)
+        // ---------------------------------------------------------------------------
+        const DEFAULT_CHIPS = [
+            { label: '🥛 Oat Milk',         query: 'Oat Milk' },
+            { label: '🥑 Avocado',           query: 'Avocado' },
+            { label: '🍞 Sourdough Bread',   query: 'Sourdough Bread' },
+            { label: '🥚 Organic Eggs',      query: 'Organic Eggs' },
+            { label: '🍝 Pasta Ingredients', query: 'Pasta Ingredients' },
+            { label: '🍕 Pizza Night',       query: 'Pizza Night' },
+            { label: '🥗 Salad Bowl',        query: 'Salad Bowl' },
+        ];
+
+        // DOM refs
+        const form               = document.getElementById('search-form');
+        const input              = document.getElementById('query-input');
+        const resultsContainer   = document.getElementById('results');
+        const loadingIndicator   = document.getElementById('loading');
+        const checklist          = document.getElementById('checklist');
+        const crossSellContainer = document.getElementById('cross-sell');
+        const errorBox           = document.getElementById('error-box');
+        const suggestionsSection = document.getElementById('suggestions');
+        const chipsContainer     = document.getElementById('chips-container');
+
+        // ---------------------------------------------------------------------------
+        // Render chips
+        // ---------------------------------------------------------------------------
+        function renderChips(historyItems = []) {
+            chipsContainer.innerHTML = '';
+
+            // History chips (real data from Firestore/memory)
+            historyItems.forEach(query => {
+                addChip(`🕐 ${query}`, query, true);
+            });
+
+            // Default chips (exclude any already in history)
+            DEFAULT_CHIPS.forEach(({ label, query }) => {
+                if (!historyItems.some(h => h.toLowerCase() === query.toLowerCase())) {
+                    addChip(label, query, false);
+                }
+            });
+        }
+
+        function addChip(label, query, isHistory) {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'suggestion-chip';
+            btn.setAttribute('role', 'listitem');
+            btn.setAttribute('aria-label', `Search for: ${query}`);
+            btn.innerHTML = label + (isHistory
+                ? '<span class="chip-history-badge" aria-label="Recently bought">recent</span>'
+                : '');
+            btn.addEventListener('click', () => {
+                input.value = query;
                 form.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
             });
-        });
+            chipsContainer.appendChild(btn);
+        }
 
+        // ---------------------------------------------------------------------------
+        // Load history from backend on page load
+        // ---------------------------------------------------------------------------
+        async function loadHistory() {
+            try {
+                const resp = await fetch(`/api/history?session_id=${encodeURIComponent(SESSION_ID)}`);
+                if (resp.ok) {
+                    const data = await resp.json();
+                    renderChips(data.history || []);
+                    return;
+                }
+            } catch (_) { /* fall through */ }
+            renderChips([]);
+        }
+
+        loadHistory();
+
+        // ---------------------------------------------------------------------------
+        // Form submission
+        // ---------------------------------------------------------------------------
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
-            
+
             const query = input.value.trim();
             if (!query) return;
 
             // Reset UI
             resultsContainer.style.display = 'none';
-            suggestionsContainer.style.display = 'none';
+            suggestionsSection.style.display = 'none';
             errorBox.style.display = 'none';
+            errorBox.textContent = '';
             loadingIndicator.style.display = 'block';
+            loadingIndicator.setAttribute('aria-busy', 'true');
+            document.getElementById('search-btn').setAttribute('aria-disabled', 'true');
 
             try {
                 const response = await fetch('/api/shopping-list', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ query })
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query, session_id: SESSION_ID }),
                 });
 
                 const data = await response.json();
@@ -424,61 +595,101 @@
                 }
 
                 renderResults(data);
+
+                // Refresh chips with updated history
+                await loadHistory();
+
             } catch (error) {
                 console.error('Error:', error);
                 errorBox.textContent = error.message;
                 errorBox.style.display = 'block';
-                // Restore suggestions on error so user can try a different query
-                suggestionsContainer.style.display = 'block';
+                // Restore suggestions on error
+                suggestionsSection.style.display = 'block';
             } finally {
                 loadingIndicator.style.display = 'none';
+                loadingIndicator.setAttribute('aria-busy', 'false');
+                document.getElementById('search-btn').removeAttribute('aria-disabled');
             }
         });
 
+        // ---------------------------------------------------------------------------
+        // Render results
+        // ---------------------------------------------------------------------------
         function renderResults(data) {
-            // Render Checklist
+            // Checklist
             checklist.innerHTML = '';
-            if (data.items && Array.isArray(data.items)) {
-                data.items.forEach((item, index) => {
+            const items = data.items && Array.isArray(data.items) ? data.items : [];
+
+            if (items.length === 0) {
+                checklist.innerHTML = '<li class="checklist-item" role="listitem">No items found.</li>';
+            } else {
+                items.forEach((item) => {
                     const li = document.createElement('li');
                     li.className = 'checklist-item';
+                    li.setAttribute('role', 'listitem');
+                    li.setAttribute('aria-label', `${item.name || 'Item'}, found in ${item.aisle || 'unknown aisle'}. Click to mark as collected.`);
+                    li.setAttribute('tabindex', '0');
                     li.innerHTML = `
                         <div class="item-left">
-                            <div class="checkbox"></div>
-                            <span class="item-name">${item.name || 'Unknown Item'}</span>
+                            <div class="checkbox" aria-hidden="true"></div>
+                            <span class="item-name">${escapeHtml(item.name || 'Unknown Item')}</span>
                         </div>
-                        <span class="item-aisle"><i class="ph ph-map-pin"></i> ${item.aisle || 'Unknown Aisle'}</span>
+                        <span class="item-aisle">
+                            <i class="ph ph-map-pin" aria-hidden="true"></i>
+                            ${escapeHtml(item.aisle || 'Unknown Aisle')}
+                        </span>
                     `;
-                    
-                    // Toggle checked state
-                    li.addEventListener('click', () => {
-                        li.classList.toggle('checked');
+
+                    const toggle = () => {
+                        const checked = li.classList.toggle('checked');
+                        li.setAttribute(
+                            'aria-label',
+                            `${item.name}, ${item.aisle}. ${checked ? 'Collected' : 'Not yet collected'}. Click to toggle.`
+                        );
+                    };
+                    li.addEventListener('click', toggle);
+                    li.addEventListener('keydown', (ev) => {
+                        if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); toggle(); }
                     });
-                    
+
                     checklist.appendChild(li);
                 });
-            } else {
-                checklist.innerHTML = '<li class="checklist-item">No items found.</li>';
             }
 
-            // Render Cross-Sell
+            // Cross-sell
             if (data.cross_sell) {
+                const cs = data.cross_sell;
                 crossSellContainer.innerHTML = `
                     <div class="cross-sell-header">
-                        <i class="ph-fill ph-lightbulb"></i> Recommended Addition
+                        <i class="ph-fill ph-lightbulb" aria-hidden="true"></i>
+                        Recommended Addition
                     </div>
-                    <div class="cross-sell-name">${data.cross_sell.name || ''}</div>
-                    <div class="cross-sell-reason">${data.cross_sell.reason || ''}</div>
-                    <div class="item-aisle" style="display: inline-block; margin-top: 0.5rem;"><i class="ph ph-map-pin"></i> ${data.cross_sell.aisle || ''}</div>
+                    <div class="cross-sell-name">${escapeHtml(cs.name || '')}</div>
+                    <div class="cross-sell-reason">${escapeHtml(cs.reason || '')}</div>
+                    <div class="item-aisle" style="display:inline-block;margin-top:0.5rem;">
+                        <i class="ph ph-map-pin" aria-hidden="true"></i>
+                        ${escapeHtml(cs.aisle || '')}
+                    </div>
                 `;
             } else {
                 crossSellContainer.innerHTML = '<div>No cross-sell recommendation available.</div>';
             }
 
-            // Show results
             resultsContainer.style.display = 'block';
-            // Restore suggestion chips below results for continued browsing
-            suggestionsContainer.style.display = 'block';
+            suggestionsSection.style.display = 'block';
+
+            // Move focus to results heading for screen readers
+            const heading = resultsContainer.querySelector('.section-title');
+            if (heading) { heading.setAttribute('tabindex', '-1'); heading.focus(); }
+        }
+
+        // ---------------------------------------------------------------------------
+        // Utility: escape user-supplied strings before inserting into DOM
+        // ---------------------------------------------------------------------------
+        function escapeHtml(str) {
+            const div = document.createElement('div');
+            div.appendChild(document.createTextNode(str));
+            return div.innerHTML;
         }
     </script>
 </body>
